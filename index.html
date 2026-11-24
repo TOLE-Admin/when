@@ -6,6 +6,9 @@
 <title>TOLE Meeting Finder</title>
 <meta name="apple-mobile-web-app-title" content="TOLE Meet">
 <base target="_top">
+<!-- TOLE Meeting Finder page v4 (Nov 23, 2026): "How this works" line and "How to use this" button,
+     "Send my times", organizer tools at the top, the chosen time in full with a Copy button,
+     and a note when a confirmation email went out. -->
 <!-- Only people with the link should find this page -->
 <meta name="robots" content="noindex">
 <!-- Tab icon, iPhone home-screen icon, and the card shown when the link is texted or posted -->
@@ -26,7 +29,7 @@
 <style>
   /* TOLE look: circle color in the band, EB Garamond titles. --c/--cfg/--heat follow the chosen circle. */
   :root { --ink:#1b2333; --quiet:#5f6368; --line:#e3e6ea; --bg:#ffffff; --soft:#f4f6f9;
-          --c:#b10202; --cfg:#ffffff; --heat:#b10202; --fs:1; }
+          --c:#b10202; --cfg:#ffffff; --heat:#b10202; --gold:#f0c27a; --fs:1; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body { margin:0; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
          color:var(--ink); background:var(--soft); font-size:calc(16px * var(--fs)); line-height:1.4; }
@@ -35,9 +38,15 @@
   .band .kicker { font-size:calc(12px * var(--fs)); letter-spacing:.08em; text-transform:uppercase; opacity:.85; }
   .band h1 { font-family:"EB Garamond", Georgia, serif; font-weight:600; font-size:calc(26px * var(--fs)); margin:2px 0 0; line-height:1.15; }
   .band .sub { font-size:calc(14px * var(--fs)); opacity:.9; margin-top:4px; }
+  /* v4: the gold "How to use this" button in the band */
+  .howbtn { margin-top:10px; min-height:40px; padding:6px 14px; border:0; border-radius:999px; background:var(--gold); color:#1b2333;
+            font-weight:700; font-size:calc(14px * var(--fs)); cursor:pointer; }
   main { max-width:640px; margin:0 auto; padding:12px 12px 120px; }
   .card { background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
   .card h2 { font-size:calc(16px * var(--fs)); margin:0 0 10px; }
+  .explain { font-size:calc(14px * var(--fs)); padding:10px 14px; }
+  .orgtools { border:2px solid var(--c); }
+  .orgtools .row2 { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   label.f { display:block; font-size:calc(14px * var(--fs)); font-weight:600; margin:12px 0 4px; }
   label.f:first-child { margin-top:0; }
   .hint { font-size:calc(13px * var(--fs)); color:var(--quiet); }
@@ -53,8 +62,8 @@
   .btn.confirm { background:#b3261e; color:#fff; border-color:#b3261e; }
   .btn:disabled { opacity:.55; }
   /* Instant feedback: buttons dip when pressed, and show a spinner while waiting on the server */
-  .btn:active:not(:disabled), .chip:active, .seg button:active, .row:active:not(:disabled), .day:active { transform:scale(.97); filter:brightness(.92); }
-  .btn, .chip, .seg button, .row, .day { transition:transform .08s ease, filter .08s ease; }
+  .btn:active:not(:disabled), .chip:active, .seg button:active, .row:active:not(:disabled), .day:active, .howbtn:active { transform:scale(.97); filter:brightness(.92); }
+  .btn, .chip, .seg button, .row, .day, .howbtn { transition:transform .08s ease, filter .08s ease; }
   .working { opacity:1 !important; pointer-events:none; }
   .working::before { content:''; display:inline-block; width:14px; height:14px; margin-right:8px; vertical-align:-2px;
     border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
@@ -123,6 +132,7 @@
   .pill { display:inline-block; font-size:calc(12px * var(--fs)); font-weight:600; padding:2px 8px; border-radius:999px; background:var(--soft); }
   .final { background:var(--ink); color:#fff; border:0; }
   .final a { color:#fff; }
+  .final .btn.ghost { background:transparent; color:#fff; border-color:rgba(255,255,255,.6); }
   .note { background:#fff8e1; border-color:#f3dd93; font-size:calc(14px * var(--fs)); }
   .link { display:flex; gap:8px; align-items:center; }
   .link code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(13px * var(--fs));
@@ -136,8 +146,7 @@
   .bar-foot .msg { flex:1; font-size:calc(14px * var(--fs)); color:var(--quiet); }
   .err { color:#b3261e; font-size:calc(14px * var(--fs)); margin-top:8px; }
   .center { text-align:center; padding:40px 16px; color:var(--quiet); }
-  /* ---------- Accessibility (the "Aa" button, on every page) ---------- */
-  /* Buttons keep their size; long labels wrap onto a second line instead of growing the button. */
+  /* ---------- Panels under the band: "How to use this" and "Aa" ---------- */
   button { line-height:1.25; white-space:normal; }
   :focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
   #title:focus, .a11y h2:focus { outline:none; }   /* only moved there for screen readers */
@@ -147,6 +156,9 @@
   .a11y { background:#fff; border-bottom:1px solid var(--line); }
   .a11y .in { max-width:640px; margin:0 auto; padding:12px; }
   .a11y h2 { font-size:calc(17px * var(--fs)); margin:0 0 8px; }
+  .a11y h3 { font-size:calc(15px * var(--fs)); margin:12px 0 4px; }
+  .a11y ol { margin:0 0 4px; padding-left:22px; font-size:calc(15px * var(--fs)); }
+  .a11y ol li { margin:3px 0; }
   .a11y .lbl { font-weight:600; font-size:calc(14px * var(--fs)); margin:12px 0 4px; }
   .chk { display:flex; align-items:center; gap:10px; min-height:44px; font-size:calc(15px * var(--fs)); cursor:pointer; margin-top:6px; }
   .chk input { width:22px; height:22px; flex:none; }
@@ -167,9 +179,10 @@
   .hc a { text-decoration:underline; }
   .hc .note { background:#fff3c4; border-color:#000; }
   .hc .heat button { outline:1px solid #888; }
+  .hc .howbtn { outline:2px solid #000; }
   @media (prefers-reduced-motion: reduce) {
     .working::before { animation:none; }
-    .btn:active:not(:disabled), .chip:active, .seg button:active, .row:active:not(:disabled), .day:active { transform:none; }
+    .btn:active:not(:disabled), .chip:active, .seg button:active, .row:active:not(:disabled), .day:active, .howbtn:active { transform:none; }
   }
 </style>
 </head>
@@ -179,7 +192,20 @@
     <div class="kicker">TOLE Meeting Finder</div>
     <h1 id="title">Find a time together</h1>
     <div class="sub" id="sub"></div>
+    <button type="button" class="howbtn" id="howBtn" aria-expanded="false" aria-controls="howPanel">How to use this</button>
     <button type="button" class="a11y-btn" id="a11yBtn" aria-expanded="false" aria-controls="a11yPanel" aria-label="Text size, contrast and read aloud">Aa</button>
+  </div>
+  <!-- v4: "How to use this". Guests see "Answering a poll" first; the start page shows "Starting a poll" first. -->
+  <div class="a11y" id="howPanel" hidden>
+    <div class="in">
+      <h2>How to use this</h2>
+      <div class="hint">It finds the time that works for the most people. Nothing is booked until the organizer picks it.</div>
+      <div id="howLists"></div>
+      <div class="tools" style="margin-top:12px">
+        <button type="button" class="btn small" id="howDone">Got it</button>
+        <a class="btn small ghost" id="howNew" href="#" style="text-decoration:none;display:inline-flex;align-items:center" hidden>➕ Create your own poll</a>
+      </div>
+    </div>
   </div>
   <!-- Display and reading options. Choices are remembered in this browser. -->
   <div class="a11y" id="a11yPanel" hidden>
@@ -202,11 +228,11 @@
     </div>
   </div>
 </header>
-<!-- Screen readers hear this box whenever something changes (saved, created, opened). -->
+<!-- Screen readers hear this box whenever something changes (sent, created, opened). -->
 <div class="sr" id="sr" aria-live="polite" role="status"></div>
 <main id="app"><div class="center">Loading…</div></main>
 <div class="bar-foot" id="foot"><div class="in"><div class="msg" id="footMsg"></div>
-  <button class="btn" id="saveBtn" type="button">Save</button></div></div>
+  <button class="btn" id="saveBtn" type="button">Send my times</button></div></div>
 
 <script>
 // The helper script in Google (hello@'s Meeting Finder, the address ending in /exec)
@@ -252,6 +278,8 @@ function addDays(s, n) { const d = parseDay(s); d.setDate(d.getDate() + n); retu
 function dayShort(s) { return parseDay(s).toLocaleDateString('en-US', { weekday:'short' }); }
 function dayNum(s) { return parseDay(s).toLocaleDateString('en-US', { month:'short', day:'numeric' }); }
 function dayLong(s) { return parseDay(s).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }); }
+// With the year, for the chosen time: "Mon, Nov 23, 2026"
+function dayFull(s) { return parseDay(s).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }); }
 function optText(start, span) { return span > 1 ? dayLong(start) + ' – ' + dayLong(addDays(start, span - 1)) : dayLong(start); }
 function clock(m, withAmPm) {
   m = m % 1440; const h = Math.floor(m / 60), mm = m % 60, h12 = ((h + 11) % 12) + 1;
@@ -267,7 +295,7 @@ function lengthWords(m) { return m % 60 ? m + '-minute' : (m / 60) + '-hour'; }
 // Copy button: also shows the text, because copying can fail on some phones.
 function copyText(btn, text) {
   const label = btn.textContent;
-  const done = ok => { btn.textContent = ok ? 'Copied' : 'Press and hold the link to copy'; setTimeout(() => btn.textContent = label, 2500); };
+  const done = ok => { btn.textContent = ok ? 'Copied' : 'Press and hold the text to copy'; setTimeout(() => btn.textContent = label, 2500); };
   const fallback = () => {
     const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', '');
     t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t);
@@ -310,11 +338,34 @@ function drawCal(box, month, isOn, isSpan, onTap, onMonth, footer) {
   box.querySelector('.cal').onclick = e => { const b = e.target.closest('button[data-k]'); if (b && !b.disabled) onTap(b.dataset.k); };
 }
 
+// ===================== "How to use this" (v4) =====================
+// Two short lists. On a poll, "Answering a poll" comes first, plus a button to start your own.
+const HOW = {
+  answer: ['Open the link you were sent.', 'Add your name and email.', 'Tap every time you\'re free (or the dates you can make).',
+           'Tap <b>Send my times</b>. That\'s it: the organizer picks the time and lets you know.'],
+  start:  ['Give the meeting a name and pick its circle.', 'Choose the days and hours (or the retreat date options).',
+           'Add your name and email, then tap <b>Create poll</b>.', 'Send the <b>guest link</b> to everyone. Keep your private link for yourself.']
+};
+function drawHow(onPoll) {
+  const list = (t, items) => '<h3>' + t + '</h3><ol>' + items.map(x => '<li>' + x + '</li>').join('') + '</ol>';
+  const a = list('Answering a poll', HOW.answer), s = list('Starting a poll', HOW.start);
+  $('howLists').innerHTML = onPoll ? a + s : s + a;
+  $('howNew').hidden = !onPoll; $('howNew').href = APP_URL;
+}
+function toggleHow(open) {
+  $('howPanel').hidden = !open; $('howBtn').setAttribute('aria-expanded', open);
+  if (open) { $('a11yPanel').hidden = true; $('a11yBtn').setAttribute('aria-expanded', 'false');
+    const h = $('howPanel').querySelector('h2'); h.setAttribute('tabindex', '-1'); h.focus(); }
+}
+$('howBtn').onclick = () => toggleHow($('howPanel').hidden);
+$('howDone').onclick = () => { toggleHow(false); $('howBtn').focus(); };
+$('howNew').onclick = e => { e.preventDefault(); toggleHow(false); setHash(''); route(); };
+
 // ===================== Create a poll =====================
 const C = { circle:'Core', kind:'call', mode:'row', start:'', count:5, picked:[], month:null, span:2, options:[] };
 
 function renderCreate() {
-  setCircle(C.circle);
+  setCircle(C.circle); drawHow(false);
   $('title').textContent = 'Find a time together';
   $('sub').textContent = 'Set up a poll. Everyone marks what works, and you see where it overlaps.';
   const t = new Date(); t.setDate(t.getDate() + 1);
@@ -462,7 +513,7 @@ function showCreated(r, title) {
     (r.emailed === false ? '<div class="card note" role="alert"><b>We couldn\'t email your links this time.</b> Copy them now and keep them somewhere safe, or use "Lost your links?" on the start page later.</div>' : '') +
     '<div class="card"><h2>✉️ Guest link: send this one</h2><div class="hint" style="margin-bottom:8px">Send it to everyone you\'re inviting, by email, text or WhatsApp.</div>' +
       '<div class="link"><code>' + esc(share) + '</code><button class="btn small" type="button" id="cp1">Copy</button></div></div>' +
-    '<div class="card"><h2>🔒 Your private link: don\'t send</h2><div class="hint" style="margin-bottom:8px">Just for you (or a co-organizer). It shows everyone\'s emails and lets you choose the final time. It\'s in your email too.</div>' +
+    '<div class="card"><h2>🔒 Your private link: don\'t send</h2><div class="hint" style="margin-bottom:8px">Just for you (a co-organizer is fine). It shows everyone\'s answers and lets you choose the final time. It\'s in your email too.</div>' +
       '<div class="link"><code>' + esc(admin) + '</code><button class="btn small ghost" type="button" id="cp2">Copy</button></div></div>' +
     '<button class="btn wide" type="button" id="goPoll">Add my own answer</button>';
   $('cp1').onclick = e => copyText(e.target, share);
@@ -471,14 +522,16 @@ function showCreated(r, title) {
 }
 
 // ===================== A poll =====================
-const S = { id:'', admin:'', p:null, me:null, mine:null, dirty:false, tab:'mine', day:0, sel:null, saving:false, saved:false, justSaved:false, pickStretch:null };
+const S = { id:'', admin:'', p:null, me:null, mine:null, dirty:false, tab:'mine', day:0, sel:null, saving:false, saved:false, justSaved:false, confirmed:'', pickStretch:null };
 const isDays = () => S.p.kind === 'days';
 const N = () => isDays() ? 1 : (S.p.end - S.p.start) / STEP;          // half hours per day (meetings)
 const total = () => isDays() ? S.p.days.length : S.p.days.length * N();
+const sendWord = () => isDays() ? 'Send my dates' : 'Send my times';
 
 function openPoll(id, admin) {
   S.id = id; S.admin = admin || ''; S.justSaved = false;
   S.me = store.get('mf-me');
+  drawHow(true);
   $('app').innerHTML = '<div class="center">Opening the poll…</div>';
   call('getPoll', [id, S.admin, S.me && S.me.email], p => {
     if (S.id !== id) return;                 // another poll was opened meanwhile
@@ -504,43 +557,73 @@ function loadPoll(p) {
     (isDays() ? p.length + (p.length > 1 ? '-day retreat' : '-day event') : 'times are ' + p.tz);
 }
 
+// v4: one line at the top of every poll page saying what this is.
+function explainCard() {
+  const p = S.p, what = isDays() ? 'dates' : 'times', pick = isDays() ? 'the dates that work' : 'the time that works';
+  return '<div class="card explain">📅 <b>How this works:</b> ' + (p.isAdmin
+    ? 'guests tap the ' + what + ' they\'re free and send them. You see where everyone overlaps and pick ' + pick + '.'
+    : 'tap the ' + what + ' you\'re free and send them. ' + esc(p.organizer) + ' sees everyone\'s answers and picks ' + pick + ' best. Nothing is booked until then.') + '</div>';
+}
+
+// v4: the organizer's tools sit at the top, where they're easy to find.
+function orgToolsCard() {
+  const p = S.p;
+  return '<div class="card orgtools"><h2>🔒 Organizer tools</h2>' +
+    '<div class="hint">This page is just for you. Don\'t send its address.</div>' +
+    '<div class="hint" style="margin:10px 0 6px"><b>✉️ Guest link: send this one</b></div>' +
+    '<div class="link"><code>' + esc(APP_URL + '#' + p.id) + '</code><button class="btn small" type="button" id="aCopy">Copy</button></div>' +
+    '<div class="row2"><button type="button" class="btn small" id="aSee">See answers &amp; pick the ' + (isDays() ? 'dates' : 'time') + '</button>' +
+    '<button type="button" class="btn small ghost" id="aClose">' + (p.status === 'closed' ? 'Reopen the poll' : 'Close the poll') + '</button></div>' +
+    '<div class="hint" style="margin-top:6px">Closing stops new answers. You can reopen it anytime.</div>' +
+    '<div class="err" id="aErrTop" role="alert"></div></div>';
+}
+
 function renderPoll() {
   const p = S.p;
-  let h = '';
-  // Organizer view: say so plainly, and hand over the guest link right here.
-  if (p.isAdmin) h += '<div class="card note"><b>🔒 Your private organizer view.</b> Don\'t send this page\'s address. To invite people, send the guest link:' +
-    '<div class="link" style="margin-top:8px"><code>' + esc(APP_URL + '#' + p.id) + '</code><button class="btn small" type="button" id="aCopy">Copy</button></div>' +
-    '<div class="hint" style="margin-top:8px">Choose the final ' + (isDays() ? 'dates' : 'time') + ', close the poll or remove an answer on the <b>Group</b> tab. Organizer tools are at the bottom.</div></div>';
-  if (S.justSaved) h += '<div class="card note" role="status"><b>✓ Saved.</b> You\'re all set and can close this page. To change your answer later, open the same link again.</div>';
+  let h = explainCard();
+  if (p.isAdmin) h += orgToolsCard();
+  if (S.justSaved) h += '<div class="card note" role="status"><b>✓ Sent. You\'re done!</b> You can close this page. ' + esc(p.organizer) +
+    ' will let you know the final ' + (isDays() ? 'dates' : 'time') + '. To change your answer, open the same link again.' +
+    (S.confirmed ? '<div style="margin-top:6px">📧 We emailed a confirmation to ' + esc(S.confirmed) + ' (check spam).</div>' : '') + '</div>';
   if (p.final) h += finalCard();
   if (p.note) h += '<div class="card" style="white-space:pre-wrap">' + esc(p.note) + '</div>';
   if (p.status === 'closed' && !p.final) h += '<div class="card"><b>This poll is closed.</b> <span class="hint">Answers can no longer change.</span></div>';
-  h += '<div class="tabs"><div class="seg" id="tabs"><button type="button" data-t="mine" aria-pressed="' + (S.tab === 'mine') + '">' + (isDays() ? 'My answer' : 'My times') + '</button>' +
+  h += '<div class="tabs" id="tabsWrap"><div class="seg" id="tabs"><button type="button" data-t="mine" aria-pressed="' + (S.tab === 'mine') + '">' + (isDays() ? 'My answer' : 'My times') + '</button>' +
        '<button type="button" data-t="group" aria-pressed="' + (S.tab === 'group') + '">Group (' + p.people.length + ')</button></div></div>';
   h += '<div id="pane"></div>';
   $('app').innerHTML = h;
   $('tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.t; S.sel = null; S.justSaved = false; renderPoll(); };
-  if (p.isAdmin) $('aCopy').onclick = e => copyText(e.target, APP_URL + '#' + p.id);
+  if (p.isAdmin) {
+    $('aCopy').onclick = e => copyText(e.target, APP_URL + '#' + p.id);
+    $('aSee').onclick = () => { S.tab = 'group'; S.sel = null; S.justSaved = false; renderPoll();
+      const t = $('tabsWrap'); if (t) t.scrollIntoView({ block:'start' }); };
+    $('aClose').onclick = () => adminDo(p.status === 'closed' ? 'reopen' : 'close', null, $('aClose'),
+      p.status === 'closed' ? 'Reopening…' : 'Closing…');
+  }
   if (S.tab === 'mine') renderMine(); else renderGroup();
   updateFoot();
   const u = $('unfinal'); if (u) u.onclick = e => { e.preventDefault(); adminDo('final', null, u, 'Undoing…'); };
+  const cw = $('copyWhen'); if (cw) cw.onclick = e => copyText(e.target, cw.dataset.copy);
 }
 
+// The chosen time, in full: "Mon, Nov 23, 2026, 11:00 am – 12:00 pm Eastern time", with Copy and Calendar.
 function finalCard() {
   const p = S.p, f = p.final;
   let when, link;
   if (isDays()) {
-    when = optText(p.days[f.d], p.length);
-    const s = p.days[f.d].replace(/-/g, ''), e = addDays(p.days[f.d], p.length).replace(/-/g, '');
-    link = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(p.title) + '&dates=' + s + '/' + e;
+    const start = p.days[f.d], end = addDays(start, p.length - 1);
+    when = p.length > 1 ? dayFull(start) + ' – ' + dayFull(end) : dayFull(start);
+    link = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(p.title) +
+      '&dates=' + start.replace(/-/g, '') + '/' + addDays(start, p.length).replace(/-/g, '');
   } else {
     const d = p.days[f.d], a = p.start + f.s * STEP, b = a + p.length;
-    when = dayLong(d) + ', ' + span(a, b) + ' ' + p.tz;
+    when = dayFull(d) + ', ' + span(a, b) + ' ' + p.tz + ' time';
     link = calLink(d, a, b);
   }
   if (p.note) link += '&details=' + encodeURIComponent(p.note);
   return '<div class="card final"><div class="hint" style="color:#d6dae0">' + (isDays() ? 'Retreat dates chosen' : 'Meeting time chosen') + '</div>' +
-    '<div style="font-size:calc(20px * var(--fs));font-weight:600;margin:4px 0 8px">' + esc(when) + '</div>' +
+    '<div style="font-size:calc(20px * var(--fs));font-weight:600;margin:4px 0 10px">' + esc(when) + '</div>' +
+    '<div class="tools"><button type="button" class="btn small ghost" id="copyWhen" data-copy="' + esc(p.title + ': ' + when) + '">📋 Copy date &amp; time</button></div>' +
     '<a href="' + esc(link) + '" target="_blank" rel="noopener" class="tap">Add to Google Calendar</a>' +
     (p.isAdmin ? ' &nbsp;·&nbsp; <a href="#" class="tap" id="unfinal">Undo</a>' : '') + '</div>';
 }
@@ -568,8 +651,8 @@ function renderMine() {
   if (!S.me || !S.me.name || !S.me.email) { renderWho(); return; }
   const locked = p.status === 'closed';
   const steps = isDays()
-    ? '<b>1.</b> Tap every date option you can make.<br><b>2.</b> Tap <b>Save</b> at the bottom.'
-    : '<b>1.</b> Tap every half hour you\'re free. Use the date tabs to switch days.<br><b>2.</b> Tap <b>Save</b> at the bottom.';
+    ? '<b>1.</b> Tap every date option you can make.<br><b>2.</b> Tap <b>Send my dates</b> at the bottom.<br><b>3.</b> That\'s it. You\'re done!'
+    : '<b>1.</b> Tap every half hour you\'re free. Use the date tabs to switch days.<br><b>2.</b> Tap <b>Send my times</b> at the bottom.<br><b>3.</b> That\'s it. You\'re done!';
   let body = '';
   if (isDays()) {
     body = '<div class="rows" id="rows">' + p.days.map((d, i) => {
@@ -655,7 +738,7 @@ function renderWho() {
   $('pane').innerHTML = '<div class="card"><h2>Who\'s answering?</h2>' +
     '<label class="f" for="wName">Your name</label><input type="text" id="wName" maxlength="60" autocomplete="name">' +
     '<label class="f" for="wEmail">Your email</label><input type="email" id="wEmail" maxlength="120" autocomplete="email">' +
-    '<div class="hint" style="margin-top:6px">Your email only brings back your own answer later. Others see just your name.</div>' +
+    '<div class="hint" style="margin-top:6px">Your email brings back your own answer later, and gets you a confirmation once you send. Others see just your name.</div>' +
     '<button class="btn wide" type="button" id="wGo" style="margin-top:12px">Continue</button><div class="err" id="wErr" role="alert"></div></div>';
   $('wGo').onclick = () => {
     const name = $('wName').value.trim(), email = $('wEmail').value.trim().toLowerCase();
@@ -666,29 +749,29 @@ function renderWho() {
   };
 }
 
-// Keeps both Save buttons (under the answer, and the bar stuck to the bottom) up to date.
+// Keeps both Send buttons (under the answer, and the bar stuck to the bottom) up to date.
 function updateFoot() {
   const show = S.tab === 'mine' && S.me && S.p && S.p.status !== 'closed' && (S.dirty || S.saving);
   $('foot').style.display = show ? 'block' : 'none';
-  $('footMsg').textContent = S.saving ? 'Saving…' : 'You have changes that aren\'t saved yet.';
+  $('footMsg').textContent = S.saving ? 'Sending…' : 'You haven\'t sent these yet.';
   $('saveBtn').disabled = S.saving; $('saveBtn').classList.toggle('working', !!S.saving);
-  $('saveBtn').textContent = S.saving ? 'Saving…' : 'Save';
+  $('saveBtn').textContent = S.saving ? 'Sending…' : (S.p ? sendWord() : 'Send my times');
   const b = $('saveBottom'), hint = $('saveHint');
   if (b) {
     const done = S.saved && !S.dirty && !S.saving;
-    b.textContent = S.saving ? 'Saving…' : done ? '✓ Saved' : 'Save';
+    b.textContent = S.saving ? 'Sending…' : done ? '✓ Sent' : sendWord();
     b.disabled = S.saving || done; b.classList.toggle('working', !!S.saving);
-    hint.className = 'hint'; hint.textContent = done ? 'Your answer is saved. Change anything above to update it.' : '';
+    hint.className = 'hint'; hint.textContent = done ? 'Your answer is sent. Change anything above to update it.' : '';
   }
 }
 function saveTimes() {
   if (S.saving) return;
   const id = S.id;
-  S.saving = true; updateFoot(); announce('Saving…');
+  S.saving = true; updateFoot(); announce('Sending…');
   call('saveResponse', [S.id, S.me.name, S.me.email, S.mine.join(''), S.admin], p => {
     S.saving = false; if (S.id !== id) return;
-    S.dirty = false; loadPoll(p); S.tab = 'group'; S.justSaved = true; renderPoll(); announce('Saved. You are all set.');
-    window.scrollTo(0, 0);
+    S.dirty = false; S.confirmed = p.confirmed || ''; loadPoll(p); S.tab = 'group'; S.justSaved = true; renderPoll();
+    announce('Sent. You\'re done.'); window.scrollTo(0, 0);
   }, msg => { S.saving = false; updateFoot(); $('footMsg').textContent = msg;
     const h = $('saveHint'); if (h) { h.className = 'err'; h.textContent = msg; } });
 }
@@ -710,7 +793,7 @@ function renderGroupDays(pane) {
   const p = S.p, total = p.people.length;
   const counts = p.days.map((d, i) => p.people.filter(x => x.slots.charAt(i) === '1'));
   const most = Math.max.apply(null, counts.map(c => c.length));
-  let h = S.dirty ? '<div class="card hint">Your latest changes aren\'t saved, so they don\'t show here yet.</div>' : '';
+  let h = S.dirty ? '<div class="card hint">Your latest changes aren\'t sent, so they don\'t show here yet.</div>' : '';
   h += '<div class="card"><h2>Which dates work</h2><div class="hint" style="margin-bottom:8px">Tap an option to see who can make it.</div><div class="rows" id="grows">';
   p.days.forEach((d, i) => {
     const yes = counts[i], sel = S.sel === i;
@@ -761,7 +844,7 @@ function bestTimes() {
 // Meetings: best times, every day at a glance, and day by day.
 function renderGroupCall(pane) {
   const p = S.p, n = N(), total = p.people.length, L = slotsNeeded();
-  let h = S.dirty ? '<div class="card hint">Your latest changes aren\'t saved, so they don\'t show here yet.</div>' : '';
+  let h = S.dirty ? '<div class="card hint">Your latest changes aren\'t sent, so they don\'t show here yet.</div>' : '';
   const best = bestTimes();
   h += '<div class="card best"><h2>Best times for a ' + lengthWords(p.length) + ' meeting</h2>';
   if (!best.length) h += '<div class="hint">No ' + lengthWords(p.length) + ' stretch works for anyone yet.</div>';
@@ -824,20 +907,17 @@ function renderGroupCall(pane) {
   const pc = $('pickCancel'); if (pc) pc.onclick = () => { S.pickStretch = null; renderGroup(); };
 }
 
-// ---------- Organizer tools ----------
+// ---------- People who answered (organizer only, bottom of the Group tab) ----------
 function adminCard() {
-  const p = S.p; if (!p.isAdmin) return '';
-  return '<div class="card"><h2>Organizer tools</h2>' +
-    '<button type="button" class="btn small ghost" id="aClose">' + (p.status === 'closed' ? 'Reopen the poll' : 'Close the poll') + '</button>' +
-    (p.people.length ? '<div class="people" style="margin-top:12px"><div class="hint" style="margin-bottom:4px">' + p.people.length + ' of ' + p.max + ' people</div><ul>' +
+  const p = S.p; if (!p.isAdmin || !p.people.length) return p.isAdmin ? '<div class="err" id="aErr" role="alert"></div>' : '';
+  return '<div class="card"><h2>People who answered</h2>' +
+    '<div class="people"><div class="hint" style="margin-bottom:4px">' + p.people.length + ' of ' + p.max + ' people</div><ul>' +
       p.people.map(x => '<li><span>' + esc(x.name) + ' <span class="hint">' + esc(x.email) + '</span></span>' +
-        '<button type="button" class="btn small ghost" data-rm="' + esc(x.email) + '">Remove</button></li>').join('') + '</ul></div>' : '') +
+        '<button type="button" class="btn small ghost" data-rm="' + esc(x.email) + '">Remove</button></li>').join('') + '</ul></div>' +
     '<div class="err" id="aErr" role="alert"></div></div>';
 }
 function bindAdmin() {
   if (!S.p.isAdmin) return;
-  $('aClose').onclick = () => adminDo(S.p.status === 'closed' ? 'reopen' : 'close', null, $('aClose'),
-    S.p.status === 'closed' ? 'Reopening…' : 'Closing…');
   // Remove takes two taps (no pop-up): the first turns the button red and asks again.
   $('pane').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
     if (b.classList.contains('confirm')) { b.classList.remove('confirm'); adminDo('remove', b.dataset.rm, b, 'Removing…'); return; }
@@ -860,7 +940,8 @@ function adminDo(action, value, btn, label) {
   }, msg => {
     if (btn && btn.isConnected) { btn.classList.remove('working'); btn.textContent = before; if ('disabled' in btn) btn.disabled = false; }
     others.forEach(b => { if (b.isConnected) b.disabled = false; });
-    const e = $('aErr'); if (e) e.textContent = msg; else showMsg(msg);
+    const top = action === 'close' || action === 'reopen';
+    const e = $(top ? 'aErrTop' : 'aErr') || $('aErrTop'); if (e) e.textContent = msg; else showMsg(msg);
   });
 }
 // Shows an error at the top of the page (instead of a pop-up box).
@@ -921,7 +1002,8 @@ function readPage() {
 $('a11yBtn').onclick = () => {
   const open = $('a11yPanel').hidden;
   $('a11yPanel').hidden = !open; $('a11yBtn').setAttribute('aria-expanded', open);
-  if (open) { const h = $('a11yPanel').querySelector('h2'); h.setAttribute('tabindex', '-1'); h.focus(); }
+  if (open) { $('howPanel').hidden = true; $('howBtn').setAttribute('aria-expanded', 'false');
+    const h = $('a11yPanel').querySelector('h2'); h.setAttribute('tabindex', '-1'); h.focus(); }
 };
 $('aDone').onclick = () => { $('a11yPanel').hidden = true; $('a11yBtn').setAttribute('aria-expanded', 'false'); $('a11yBtn').focus(); };
 $('aFs').onclick = e => { const b = e.target.closest('button'); if (!b) return; A.fs = Number(b.dataset.v); saveA11y(); };
